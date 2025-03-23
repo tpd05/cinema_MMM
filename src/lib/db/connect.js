@@ -7,7 +7,8 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  ssl: {
-    rejectUnauthorized: true, // Cần dùng nếu Railway yêu cầu SSL
-  },
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : null,
 });
+
+export default pool;
+
