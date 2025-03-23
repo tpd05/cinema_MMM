@@ -1,16 +1,13 @@
-import mysql from 'mysql2/promise';
-
 const pool = mysql.createPool({
-  host: process.env.MYSQLHOST,
-  user: process.env.MYSQLUSER,
-  password: process.env.MYSQLPASSWORD,
-  database: process.env.MYSQLDATABASE,
+  host: process.env.MYSQLHOST || 'localhost',
+  user: process.env.MYSQLUSER || 'root',
+  password: process.env.MYSQLPASSWORD || '',
+  database: process.env.MYSQLDATABASE || '',
   port: process.env.MYSQLPORT ? parseInt(process.env.MYSQLPORT) : 3306,
   waitForConnections: true,
-  connectionLimit: process.env.DB_CONNECTION_LIMIT
-    ? parseInt(process.env.DB_CONNECTION_LIMIT)
-    : 10,
+  connectionLimit: 10,
   queueLimit: 0,
+  ssl: {
+    rejectUnauthorized: true, // Cần dùng nếu Railway yêu cầu SSL
+  },
 });
-
-export default pool;
