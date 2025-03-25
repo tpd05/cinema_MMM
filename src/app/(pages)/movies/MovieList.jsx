@@ -4,30 +4,20 @@ import { useEffect, useState } from "react";
 import MovieCard from "./MovieCard";
 
 export default function MovieList() {
-    const [movies, setMovies] = useState([]);
+    const [nowShowing, setNowShowing] = useState([]);
+    const [comingSoon, setComingSoon] = useState([]);
     const [showAllNowShowing, setShowAllNowShowing] = useState(false);
     const [showAllComingSoon, setShowAllComingSoon] = useState(false);
 
     useEffect(() => {
         fetch("/api/movieAPI")
             .then((res) => res.json())
-            .then((data) => setMovies(data))
+            .then((data) => {
+                setNowShowing(data.nowShowing);
+                setComingSoon(data.comingSoon);
+            })
             .catch((err) => console.error("Error fetching movies:", err));
     }, []);
-
-    const now = new Date();
-    const oneMonthLater = new Date();
-    oneMonthLater.setMonth(now.getMonth() + 1);
-
-    const nowShowing = movies.filter(movie => {
-        const releaseDate = new Date(movie.release_date);
-        return releaseDate >= now && releaseDate <= oneMonthLater;
-    });
-
-    const comingSoon = movies.filter(movie => {
-        const releaseDate = new Date(movie.release_date);
-        return releaseDate > oneMonthLater;
-    });
 
     return (
         <div className="movie-container">
@@ -50,6 +40,12 @@ export default function MovieList() {
 function MovieSection({ title, movies, showAll, setShowAll }) {
     const displayedMovies = showAll ? movies : movies.slice(0, 6);
 
+    // Hàm định dạng ngày tháng
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+    };
+
     return (
         <div className="movie-section">
             <div className="section-header">
@@ -68,8 +64,7 @@ function MovieSection({ title, movies, showAll, setShowAll }) {
                             title={movie.title}
                             genre={movie.genre}
                             duration={movie.duration}
-                            releaseDate={movie.release_date}
-                            price={movie.ticket_price}
+                            releaseDate={formatDate(movie.release_date)}  // Định dạng ngày ở đây
                         />
                     ))
                 ) : (

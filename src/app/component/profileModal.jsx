@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useProfile } from "../hook/profileContext";
+import { fetchWithAuth } from "../../services/authService";
 
 export default function ProfileModal() {
     const { isProfileOpen, closeProfile } = useProfile();
@@ -11,10 +12,9 @@ export default function ProfileModal() {
     useEffect(() => {
         if (isProfileOpen) {
             setLoading(true);
-            fetch("/api/auth/me", { method: "GET", credentials: "include" })
-                .then((res) => res.json())
+            fetchWithAuth("/api/auth/me")
                 .then((data) => {
-                    console.log("Dữ liệu từ API:", data); 
+                    console.log("Dữ liệu từ API:", data);
                     if (data.user) {
                         setUserData(data.user);
                     } else {

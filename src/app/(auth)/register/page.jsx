@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { register } from "@/services/authService";
 import Layout from "@/app/component/layout";
-import { validateRegistration } from "@/lib/validation/authValidation"; // Import kiểm tra đầu vào
+import { validateRegistration } from "@/lib/validation/authValidation";
 
 export default function RegisterPage() {
     const [step, setStep] = useState(1);

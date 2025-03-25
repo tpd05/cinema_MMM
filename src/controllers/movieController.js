@@ -1,4 +1,4 @@
-import { getAllMovies, getMovieById, createMovie, updateMovie, deleteMovie } from "@/models/movieModel";
+import { getAllMovies, getMovieById, getNowShowingMovies, getComingSoonMovies, createMovie, updateMovie, deleteMovie } from "@/models/movieModel";
 
 export async function handleGetMovies(req, res) {
     try {
@@ -17,6 +17,24 @@ export async function handleGetMovie(req, res) {
         res.status(200).json(movie);
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch movie" });
+    }
+}
+
+export async function handleGetNowShowingMovies(req, res) {
+    try {
+        const movies = await getNowShowingMovies();
+        res.status(200).json(movies);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch now showing movies" });
+    }
+}
+
+export async function handleGetComingSoonMovies(req, res) {
+    try {
+        const movies = await getComingSoonMovies();
+        res.status(200).json(movies);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch coming soon movies" });
     }
 }
 

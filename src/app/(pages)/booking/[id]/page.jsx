@@ -19,7 +19,7 @@ export default function BookingPage() {
     const [selectedSeats, setSelectedSeats] = useState([]);
     const [seatList, setSeatList] = useState([]);
 
-    // Lấy thông tin phim
+    // Fetch movie information
     useEffect(() => {
         if (!params?.id) return;
 
@@ -35,13 +35,13 @@ export default function BookingPage() {
                 setLoading(false);
             })
             .catch((err) => {
-                console.error("Lỗi khi tải phim:", err);
+                console.error("Error loading movie:", err);
                 setMovie(null);
                 setLoading(false);
             });
     }, [params?.id]);
 
-    // Lấy danh sách rạp chiếu phim
+    // Fetch the list of theaters showing the movie
     useEffect(() => {
         fetch(`/api/theatersAPI?movie_id=${params.id}`)
             .then((res) => {
@@ -55,12 +55,13 @@ export default function BookingPage() {
                 if (data?.length > 0) setSelectedTheater(data[0].id);
             })
             .catch((err) => {
-                console.error("Lỗi khi tải danh sách rạp:", err);
+                console.error("Error loading theaters list:", err);
                 setTheaters([]);
             });
     }, [params?.id]);
 
-    // Lấy suất chiếu của phim tại rạp đã chọn
+
+    // Fetch movie showtimes at the selected theater
     useEffect(() => {
         if (!selectedTheater) return;
 
@@ -80,13 +81,13 @@ export default function BookingPage() {
                 }
             })
             .catch((err) => {
-                console.error("Lỗi khi tải suất chiếu:", err);
+                console.error("Error fetching showtimes:", err);
                 setShowtimes([]);
                 setSelectedDate(null);
             });
     }, [params?.id, selectedTheater]);
 
-    // Lọc danh sách ngày chiếu theo rạp đã chọn
+    // Filter unique show dates based on the selected theater
     const uniqueDates = [
         ...new Set(
             showtimes
@@ -95,7 +96,7 @@ export default function BookingPage() {
         )
     ];
 
-    // Lọc danh sách giờ chiếu theo ngày & rạp đã chọn
+    // Filter showtimes based on selected date & theater
     useEffect(() => {
         if (!selectedDate || !selectedTheater) return;
 
@@ -106,20 +107,21 @@ export default function BookingPage() {
                     new Date(show.showtime).toISOString().split("T")[0] === selectedDate
             )
             .map((show) => ({
-                time: new Date(show.showtime).toLocaleTimeString("vi-VN", {
+                time: new Date(show.showtime).toLocaleTimeString("en-GB", {
                     hour: "2-digit", minute: "2-digit"
                 }),
-                id: show.id // Thêm id vào object để dễ quản lý
+                id: show.id // Add id to the object for easier management
             }));
 
         setAvailableTimes(times);
     }, [selectedDate, selectedTheater, showtimes]);
 
-    // Xử lý khi chọn giờ
+
+    // Handle time selection
     const handleTimeSelection = (timeInfo) => {
         setSelectedTime(timeInfo.time);
 
-        // Gọi API để lấy số ghế trống tại thời gian đã chọn
+        // Call API to get the number of available seats at the selected time
         fetch(`/api/availableSeatsAPI?showtime_id=${timeInfo.id}`)
             .then(res => {
                 if (!res.ok) {
@@ -131,10 +133,11 @@ export default function BookingPage() {
                 setAvailableSeats(data.availableSeats);
             })
             .catch(err => {
-                console.error("Lỗi khi tải số ghế trống:", err);
+                console.error("Error fetching available seats:", err);
                 setAvailableSeats(null);
             });
     };
+
     useEffect(() => {
         if (!selectedTheater || !selectedTime) return;
 
@@ -149,11 +152,11 @@ export default function BookingPage() {
                     setSeatList(data.seats);
                     console.log("Seats fetched:", data.seats);
                 } else {
-                    console.error("API không trả về danh sách ghế!", data);
+                    console.error("API did not return seat list!", data);
                     setSeatList([]);
                 }
             } catch (error) {
-                console.error("Lỗi khi gọi API seatsAPI:", error);
+                console.error("Error calling seatsAPI:", error);
                 setSeatList([]);
             }
         };
@@ -161,21 +164,19 @@ export default function BookingPage() {
         fetchSeats();
     }, [selectedTheater, selectedTime]);
 
-
-
-    // xử lý chọn ghế
+    // Handle seat selection
     const handleSeatsSelection = (seat) => {
         if (seat.status === "booked") {
-            alert("Ghế này đã được đặt, vui lòng chọn ghế khác.");
+            alert("This seat has already been booked, please select another seat.");
             return;
         }
 
         setSelectedSeats((prevSelectedSeats) => {
             if (prevSelectedSeats.includes(seat.id)) {
-                // Nếu ghế đã được chọn, thì hủy chọn
+                // If the seat is already selected, deselect it
                 return prevSelectedSeats.filter((id) => id !== seat.id);
             } else {
-                // Nếu ghế chưa được chọn, thêm vào mảng
+                // If the seat is not selected, add it to the array
                 return [...prevSelectedSeats, seat.id];
             }
         });
@@ -183,15 +184,22 @@ export default function BookingPage() {
 
 
 
+
     const handleBooking = async () => {
         try {
-            // Lấy thông tin người dùng từ API /me
+            // Get user information from /me API
             const meRes = await fetch('/api/auth/me');
             const meData = await meRes.json();
             const accountId = meData.user.account_id;
 
+
+            if (!accountId) {
+                alert('Failed to get account ID. Please log in again.');
+                return;
+            }
+
             const selectedShowtimeId = showtimes.find((st) => {
-                const showtimeDate = st.showtime.split('T')[0]; // Lấy ngày
+                const showtimeDate = st.showtime.split('T')[0]; // Extract date
                 const showtimeTime = new Date(st.showtime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
                 return st.theater_id === selectedTheater &&
@@ -200,65 +208,69 @@ export default function BookingPage() {
             })?.id;
 
             if (!accountId || !selectedShowtimeId || selectedSeats.length === 0) {
-                alert('Vui lòng chọn đầy đủ thông tin trước khi đặt vé.');
+                alert('Please select all required information before booking.');
                 return;
             }
 
-            // Gọi API book ghế
-            // Gọi API book ghế
+            // Call the seat booking API
             const res = await fetch('/api/bookSeatAPI', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    account_id: accountId,  // Đổi từ client_id thành account_id
+                    account_id: accountId,
                     showtime_id: selectedShowtimeId,
                     seat_ids: selectedSeats,
                 }),
             });
 
-
             const data = await res.json();
             if (res.ok) {
-                alert('Đặt vé thành công!');
+                alert('Booking successful!');
             } else {
-                alert(data.error || 'Có lỗi xảy ra');
+                alert(data.error || 'An error occurred');
             }
         } catch (error) {
-            console.error('Lỗi khi đặt vé:', error);
+            console.error('Error while booking:', error);
         }
+    };
+
+
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
     };
 
 
 
 
 
-    if (loading) return <p>Đang tải...</p>;
-    if (!movie) return <p>Không tìm thấy phim</p>;
+    if (loading) return <p></p>;
+    if (!movie) return <p>!404</p>;
 
     return (
         <Layout>
             <Header />
             <div className="booking-container">
                 <div className="movie-info-container">
-                {/* Ảnh phim */}
-                <img src={`/img/${movie.image_url}`} alt={movie.title} className="booking-movie-img" />
-                
-                {/* Thông tin chi tiết phim */}
-                <div className="booking-movie-details">
-                    <h1 className="booking-movie-title">Đặt vé: {movie.title}</h1>
-                    <h2 className="booking-movie-h2"><strong>Mô tả:</strong> {movie.description}</h2>
-                    <p className="booking-movie-info"><strong>Đạo diễn:</strong> {movie.director}</p>
-                    <p className="booking-movie-info"><strong>Thể loại:</strong> {movie.genre}</p>
-                    <p className="booking-movie-info"><strong>Thời lượng:</strong> {movie.duration} phút</p>
-                    <p className="booking-movie-info"><strong>Ngày khởi chiếu:</strong> {movie.release_date}</p>
-                    <p className="booking-movie-info"><strong>Giá vé:</strong> ${movie.ticket_price}</p>
+
+                    {/* Ảnh phim */}
+                    <img src={`/img/${movie.image_url}`} alt={movie.title} className="booking-movie-img" />
+
+                    {/* Thông tin chi tiết phim */}
+                    <div className="booking-movie-details">
+                        <h1 className="booking-movie-title">Book a ticket: {movie.title}</h1>
+                        <h2 className="booking-movie-h2"><strong>Description:</strong> {movie.description}</h2>
+                        <p className="booking-movie-info"><strong>Director:</strong> {movie.director}</p>
+                        <p className="booking-movie-info"><strong>Genre:</strong> {movie.genre}</p>
+                        <p className="booking-movie-info"><strong>Duration:</strong> {movie.duration} phút</p>
+                        <p className="booking-movie-info"><strong>Release date:</strong> {formatDate(movie.release_date)}</p>
+                    </div>
                 </div>
-                </div>
-    
+
                 {/* Phần chọn vé */}
                 <div className="booking-movie-select">
                     {/* Chọn rạp */}
-                    <h2>Chọn rạp chiếu</h2>
+                    <h2>Choose a cinema</h2>
                     <div className="theater-list">
                         {theaters.map((theater) => (
                             <button
@@ -270,11 +282,11 @@ export default function BookingPage() {
                             </button>
                         ))}
                     </div>
-    
+
                     {/* Chọn ngày chiếu */}
                     {selectedTheater && uniqueDates.length > 0 && (
                         <>
-                            <h2>Chọn ngày chiếu</h2>
+                            <h2>Choose a screening date</h2>
                             <div className="date-list">
                                 {uniqueDates.map(date => (
                                     <button
@@ -288,11 +300,11 @@ export default function BookingPage() {
                             </div>
                         </>
                     )}
-    
-                    {/* Chọn giờ chiếu */}
+
+                    {/* Select Showtime */}
                     {selectedDate && (
                         <>
-                            <h2>Chọn giờ chiếu</h2>
+                            <h2>Select Showtime</h2>
                             <div className="time-list">
                                 {availableTimes.length > 0 ? (
                                     <>
@@ -305,19 +317,19 @@ export default function BookingPage() {
                                                 {item.time}
                                             </button>
                                         ))}
-                                        <p className="total">Tổng số ghế: <strong>{theaters.find(t => t.id === selectedTheater)?.total_seats || "N/A"}</strong></p>
+                                        <p className="total">Total seats: <strong>{theaters.find(t => t.id === selectedTheater)?.total_seats || "N/A"}</strong></p>
                                     </>
                                 ) : (
-                                    <p>Không có suất chiếu</p>
+                                    <p>No showtimes available</p>
                                 )}
                             </div>
-    
+
                             {selectedTime && availableSeats !== null && (
-                                <p className="seats-info">Số ghế trống: <strong>{availableSeats}</strong></p>
+                                <p className="seats-info">Available seats: <strong>{availableSeats}</strong></p>
                             )}
                         </>
                     )}
-    
+
                     {/* Sơ đồ ghế */}
                     <div className="grid grid-cols-5 gap-2 p-4 bg-gray-100 rounded-lg shadow-md">
                         {seatList && seatList.length > 0 ? (
@@ -326,32 +338,31 @@ export default function BookingPage() {
                                     key={seat.id}
                                     onClick={() => handleSeatsSelection(seat)}
                                     disabled={seat.status === "booked"}
-                                    className={`p-2 text-center rounded-lg font-bold transition duration-300 ${
-                                        seat.status === "booked"
-                                            ? "bg-red-400 text-white cursor-not-allowed"
-                                            : selectedSeats.includes(seat.id)
-                                                ? "bg-green-500 text-white"
-                                                : "bg-gray-300 hover:bg-gray-400"
-                                    }`}
+                                    className={`p-2 text-center rounded-lg font-bold transition duration-300 ${seat.status === "booked"
+                                        ? "bg-red-400 text-white cursor-not-allowed"
+                                        : selectedSeats.includes(seat.id)
+                                            ? "bg-green-500 text-white"
+                                            : "bg-gray-300 hover:bg-gray-400"
+                                        }`}
                                 >
                                     {seat.seat_number}
                                 </button>
                             ))
                         ) : (
-                            <p className="col-span-5 text-center text-gray-500">Không có ghế nào khả dụng.</p>
+                            <p className="col-span-5 text-center text-gray-500">No seats available.</p>
                         )}
                     </div>
-    
+
                     {/* Nút xác nhận */}
                     <button
                         onClick={handleBooking}
                         className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded-lg transition duration-300"
                     >
-                        Đặt vé ngay
+                        Buy ticket
                     </button>
                 </div>
             </div>
-        </Layout>
-    );    
+        </Layout >
+    );
 }
 

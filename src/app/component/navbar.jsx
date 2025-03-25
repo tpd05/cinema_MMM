@@ -12,6 +12,13 @@ export default function Navbar() {
         setIsOpen(!isOpen);
     };
 
+    const getHomeLink = () => {
+        if (user) {
+            return user.role === "admin" ? "/admin-dashboard" : "/client-dashboard";
+        }
+        return "/";
+    };
+
     return (
         <nav className="navbar">
             <div className="logo">MMM</div>
@@ -19,7 +26,7 @@ export default function Navbar() {
                 ☰
             </button>
             <ul className={`navbar-menu ${isOpen ? "active" : ""}`}>
-                <li><Link href="/">Home</Link></li>
+                <li><Link href={getHomeLink()}>Home</Link></li>
                 <li><Link href="#">Genre</Link></li>
                 <li><Link href="#">Country</Link></li>
                 <li><Link href="/movies">Movie</Link></li>

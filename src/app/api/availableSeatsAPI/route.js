@@ -9,18 +9,6 @@ export async function GET(req) {
     }
 
     try {
-        // Cập nhật trạng thái ghế thành "available" nếu suất chiếu đã kết thúc
-        await db.query(
-            `UPDATE bookings b
-             JOIN showtimes s ON b.showtime_id = s.id
-             JOIN movies m ON s.movie_id = m.id
-             SET b.status = 'available' 
-             WHERE b.showtime_id = ? 
-             AND NOW() > (s.showtime + INTERVAL m.duration MINUTE)`, // ✅ Đã sửa start_time thành showtime
-            [showtimeId]
-        );
-
-        // Truy vấn số ghế trống
         const [rows] = await db.query(
             `SELECT 
                 (t.total_seats - IFNULL(b.booked_seats, 0)) AS available_seats
@@ -31,8 +19,8 @@ export async function GET(req) {
                  FROM bookings
                  WHERE status = 'booked'
                  GROUP BY showtime_id
-             ) b ON s.id = b.showtime_id  -- ✅ Đã sửa s.showtime_id thành s.id
-             WHERE s.id = ?`, // ✅ Đã sửa s.showtime_id thành s.id
+             ) b ON s.id = b.showtime_id
+             WHERE s.id = ?`,
             [showtimeId]
         );
 

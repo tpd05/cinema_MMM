@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useProfile } from "../hook/profileContext";
+import { fetchWithAuth } from "../../services/authService";
 
 export default function AvatarMenu({ user, onLogout }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -31,24 +32,20 @@ export default function AvatarMenu({ user, onLogout }) {
     const handleLogout = async (event) => {
         event.preventDefault();
         try {
-            const response = await fetch("/api/auth/logout", { method: "POST" });
-            if (response.ok) {
-                onLogout();
-                alert("Đăng xuất thành công!");
-                router.push("/");
-            } else {
-                alert("Đăng xuất thất bại, vui lòng thử lại!");
-            }
+            await fetchWithAuth("/api/auth/logout", { method: "POST" });
+            onLogout();
+            alert("Đăng xuất thành công!");
+            router.push("/");
         } catch (error) {
             console.error("Lỗi khi đăng xuất:", error);
-            alert("Có lỗi xảy ra, vui lòng thử lại!");
+            alert("Đăng xuất thất bại, vui lòng thử lại!");
         }
     };
 
     return (
         <li className="avatar-container" ref={menuRef}>
             <button className="avatar" onClick={toggleMenu}>
-                <img src="/avatar/default.png" alt="User Avatar" />
+            <img src={user?.avatar || "/avatar/default.png"} alt="User Avatar" />
             </button>
             {isMenuOpen && (
                 <ul className="dropdown-menu">

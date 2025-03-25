@@ -37,55 +37,39 @@ export async function POST(req) {
 
     const clientId = client[0].id;
 
-    // Kiểm tra ghế hợp lệ
-    const [seats] = await connection.query(
-      'SELECT id FROM seats WHERE id IN (?)',
-      [seat_ids]
-    );
-
-    if (seats.length !== seat_ids.length) {
-      return new Response(JSON.stringify({ error: 'Invalid seats' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Kiểm tra ghế đã được đặt chưa
-    const [booked] = await connection.query(
-      `SELECT seat_id FROM bookings 
-       WHERE showtime_id = ? AND seat_id IN (?) 
-       FOR UPDATE`,
+    // Kiểm tra ghế đã được đặt cho suất chiếu đó chưa
+    const [existingBookings] = await connection.query(
+      `SELECT seat_id FROM bookings
+   WHERE showtime_id = ? AND seat_id IN (?)`,
       [showtime_id, seat_ids]
     );
 
-    if (booked.length > 0) {
-      return new Response(JSON.stringify({ error: 'Seats already booked' }), {
+    if (existingBookings.length > 0) {
+      return new Response(JSON.stringify({ error: 'One or more seats are already booked' }), {
         status: 409,
         headers: { 'Content-Type': 'application/json' }
       });
     }
+
 
     // Tính tổng tiền ($5/ghế)
     const total_price = 5 * seat_ids.length;
 
     // Tạo danh sách bookings
     const booking_time = new Date();
-    const bookings = seat_ids.map(seat_id => [
-      clientId,
-      showtime_id,
-      seat_id,
-      5.00,
-      booking_time,
-      'booked'
-    ]);
 
-    // Chèn vào bảng bookings
-    await connection.query(
-      `INSERT INTO bookings 
-       (client_id, showtime_id, seat_id, total_price, booking_time, status)
-       VALUES ?`,
-      [bookings]
-    );
+    for (const seat_id of seat_ids) {
+      await connection.query(
+        `INSERT INTO bookings (client_id, showtime_id, seat_id, total_price, booking_time, status)
+         VALUES (?, ?, ?, ?, ?, 'booked')
+         ON DUPLICATE KEY UPDATE 
+         client_id = VALUES(client_id),
+         total_price = VALUES(total_price),
+         booking_time = VALUES(booking_time),
+         status = 'booked'`,
+        [clientId, showtime_id, seat_id, 5.00, booking_time]
+      );
+    }
 
     await connection.commit();
     return new Response(JSON.stringify({

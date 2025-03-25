@@ -8,7 +8,6 @@ export default function MovieCard({ id, img, title, genre, duration, releaseDate
                 <p><strong>Genre:</strong> {genre}</p>
                 <p><strong>Duration:</strong> {duration}</p>
                 <p><strong>Release Date:</strong> {releaseDate}</p>
-                <p><strong>Ticket Price:</strong> {price}</p>
                 <Link href={`/booking/${id}`}>
                     <button className="buy-ticket">Mua vé</button>
                 </Link>
